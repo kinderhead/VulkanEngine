@@ -1,5 +1,7 @@
-#include <iostream>
+#include "TestWindow.hpp"
 
-void say_hello(){
-    std::cout << "Hello, from VulkanEngine!\n";
+int main()
+{
+    TestWindow window("Gaming", 800, 600);
+    window.run();
 }
