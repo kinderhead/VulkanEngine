@@ -10,6 +10,8 @@ Window::Window(string title, int width, int height)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+
+    renderer = make_unique<Renderer>();
 }
 
 Window::~Window()
