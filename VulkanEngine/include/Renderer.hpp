@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utils.hpp"
+#include "SwapChain.hpp"
 
 struct QueueFamilyIndices
 {
@@ -13,13 +14,6 @@ struct QueueFamilyIndices
     }
 };
 
-struct SwapChainSupportDetails
-{
-    vk::SurfaceCapabilitiesKHR capabilities;
-    std::vector<vk::SurfaceFormatKHR> formats;
-    std::vector<vk::PresentModeKHR> presentModes;
-};
-
 class Renderer
 {
     vki::Context ctx;
@@ -29,10 +23,7 @@ class Renderer
     vki::Device device;
     vki::SurfaceKHR surface;
 
-    vki::SwapchainKHR swapChain;
-    vector<vk::Image> swapChainImages;
-    vk::Format swapChainImageFormat;
-    vk::Extent2D swapChainExtent;
+    unique_ptr<SwapChain> swapChain;
 
     vki::Queue graphicsQueue;
     vki::Queue presentQueue;
@@ -51,9 +42,6 @@ public:
 
 private:
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(vki::PhysicalDevice device);
 
-    vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
-    vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes);
-    vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+    friend class SwapChain;
 };
