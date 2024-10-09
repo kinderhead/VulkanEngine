@@ -5,6 +5,8 @@ project(VulkanEngine VERSION 0.1.0 LANGUAGES C CXX)
 add_subdirectory(Vulkan-Hpp)
 add_subdirectory(Vulkan-Hpp/Vulkan-Headers)
 add_subdirectory(Vulkan-Hpp/glm)
+
+set(GLFW_BUILD_WAYLAND ON CACHE BOOL "Build support for Wayland" FORCE)
 add_subdirectory(Vulkan-Hpp/glfw)
 
 add_subdirectory(VulkanEngine)

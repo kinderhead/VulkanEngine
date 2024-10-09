@@ -11,7 +11,7 @@ Window::Window(string title, int width, int height)
 
     window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 
-    renderer = make_unique<Renderer>();
+    renderer = make_unique<Renderer>(title, window);
 }
 
 Window::~Window()

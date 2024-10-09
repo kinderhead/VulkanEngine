@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 #include <optional>
+#include <set>
+#include <vector>
 
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
