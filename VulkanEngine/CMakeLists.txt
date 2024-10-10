@@ -7,6 +7,7 @@ add_library(VulkanEngine
     src/SwapChain.cpp
     src/Shader.cpp
     src/Pipeline.cpp
+    src/RenderPass.cpp
 
     include/utils.hpp
     include/Window.hpp
@@ -14,6 +15,7 @@ add_library(VulkanEngine
     include/SwapChain.hpp
     include/Shader.hpp
     include/Pipeline.hpp
+    include/RenderPass.hpp
 )
 
 target_glsl_shaders(

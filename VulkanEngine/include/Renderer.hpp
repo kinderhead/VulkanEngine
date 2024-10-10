@@ -4,6 +4,7 @@
 #include "SwapChain.hpp"
 #include "Shader.hpp"
 #include "Pipeline.hpp"
+#include "RenderPass.hpp"
 
 struct QueueFamilyIndices
 {

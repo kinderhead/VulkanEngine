@@ -77,6 +77,31 @@ SwapChain::SwapChain(Renderer* renderer) : handle({}), renderer(renderer)
     }
 }
 
+void SwapChain::populateFramebuffers(shared_ptr<RenderPass> renderPass)
+{
+    for (const auto& i : imageViews)
+    {
+        vk::ImageView attachments[] = { i };
+
+        vk::FramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.renderPass = renderPass->handle;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = extent.width;
+        framebufferInfo.height = extent.height;
+        framebufferInfo.layers = 1;
+
+        try
+        {
+            frameBuffers.push_back(renderer->device.createFramebuffer(framebufferInfo));
+        }
+        catch (vk::SystemError err)
+        {
+            throw std::runtime_error("Error making framebuffer");
+        }
+    }
+}
+
 SwapChainSupportDetails SwapChain::querySwapChainSupport(vki::PhysicalDevice device)
 {
     SwapChainSupportDetails details;

@@ -79,8 +79,11 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
     log("Compiled shaders");
 
-    basicPipeline = make_shared<Pipeline>(vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader });
+    basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader });
     log("Created render pipeline");
+
+    swapChain->populateFramebuffers(basicPipeline->renderPass);
+    log("Created framebuffers");
 }
 
 void Renderer::log(string txt)

@@ -2,8 +2,10 @@
 
 #include "Renderer.hpp"
 
-Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders) : renderer(renderer), layout({})
+Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders) : renderer(renderer), layout({}), handle({})
 {
+    renderPass = make_shared<RenderPass>(renderer);
+
     vector<vk::PipelineShaderStageCreateInfo> stages;
 
     for (const auto& i : shaders)
@@ -74,6 +76,29 @@ Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders) : ren
     }
     catch (vk::SystemError err)
     {
-        throw std::runtime_error("failed to create pipeline layout!");
+        throw std::runtime_error("Error creating graphics layout");
+    }
+
+    vk::GraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = stages.data();
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.layout = layout;
+    pipelineInfo.renderPass = renderPass->handle;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = nullptr;
+
+    try
+    {
+        handle = renderer->device.createGraphicsPipeline(nullptr, pipelineInfo);
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error creating graphics pipeline");
     }
 }

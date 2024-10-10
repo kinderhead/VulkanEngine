@@ -10,19 +10,23 @@ struct SwapChainSupportDetails
 };
 
 class Renderer; // Forward declaration
+class RenderPass;
 
 class SwapChain
 {
     vki::SwapchainKHR handle;
 
     vector<vk::Image> images;
-    vector<vki::ImageView> imageViews;    
+    vector<vki::ImageView> imageViews;
+    vector<vki::Framebuffer> frameBuffers;
 public:
     vk::Format imageFormat;
     vk::Extent2D extent;
     Renderer* renderer;
-    
+
     SwapChain(Renderer* renderer);
+
+    void populateFramebuffers(shared_ptr<RenderPass> renderPass);
 private:
     SwapChainSupportDetails querySwapChainSupport(vki::PhysicalDevice device);
 
