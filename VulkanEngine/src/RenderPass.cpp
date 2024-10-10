@@ -39,3 +39,16 @@ RenderPass::RenderPass(Renderer* renderer) : renderer(renderer), handle({})
         throw std::runtime_error("Error creating render pass");
     }
 }
+
+vk::RenderPassBeginInfo RenderPass::getBeginInfo(vki::Framebuffer& framebuffer, vk::ClearValue* clearColor)
+{
+    vk::RenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.renderPass = handle;
+    renderPassInfo.framebuffer = framebuffer;
+    renderPassInfo.renderArea.offset = vk::Offset2D { 0, 0 };
+    renderPassInfo.renderArea.extent = renderer->swapChain->extent;
+
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = clearColor;
+    return renderPassInfo;
+}

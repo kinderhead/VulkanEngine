@@ -1,6 +1,6 @@
 #include "Renderer.hpp"
 
-Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}), physicalDevice({}), graphicsQueue({}), presentQueue({}), surface({}), window(window)
+Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}), physicalDevice({}), graphicsQueue({}), presentQueue({}), surface({}), window(window), commandPool({})
 {
     // Init
     log("Initializing Vulkan");
@@ -74,7 +74,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     swapChain = make_unique<SwapChain>(this);
     log("Created swap chain");
 
-    // Do shader things
+    // Do things
     basicVertShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.vert.spv", vk::ShaderStageFlagBits::eVertex);
     basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
     log("Compiled shaders");
@@ -84,6 +84,49 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
 
     swapChain->populateFramebuffers(basicPipeline->renderPass);
     log("Created framebuffers");
+
+    // Setup commands
+    vk::CommandPoolCreateInfo poolInfo = {};
+    poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
+
+    try
+    {
+        commandPool = device.createCommandPool(poolInfo);
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error making command pool");
+    }
+
+    vk::CommandBufferAllocateInfo allocInfo = {};
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandBufferCount = (uint32_t) swapChain->framebuffers.size();
+
+    vk::ClearValue clearColor = { array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } };
+
+    try
+    {
+        commandBuffers = device.allocateCommandBuffers(allocInfo);
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error allocating command buffers");
+    }
+
+    for (size_t i = 0; i < commandBuffers.size(); i++)
+    {
+        vk::CommandBufferBeginInfo beginInfo = {};
+        beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+        commandBuffers[i].begin(beginInfo);
+        commandBuffers[i].beginRenderPass(basicPipeline->renderPass->getBeginInfo(swapChain->framebuffers[i], &clearColor), vk::SubpassContents::eInline);
+
+        commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, basicPipeline->handle);
+        commandBuffers[i].draw(3, 1, 0, 0);
+
+        commandBuffers[i].endRenderPass();
+        commandBuffers[i].end();
+    }
 }
 
 void Renderer::log(string txt)

@@ -7,10 +7,11 @@
 class Pipeline
 {
     vki::PipelineLayout layout;
-    vki::Pipeline handle;
 public:
     Renderer* renderer;
-    
+
+    vki::Pipeline handle;
+
     shared_ptr<RenderPass> renderPass;
         
     Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders);

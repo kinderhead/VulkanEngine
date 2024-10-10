@@ -6,13 +6,11 @@ class Renderer; // Forward declaration
 
 class RenderPass
 {
-    vki::RenderPass handle;
 public:
+    vki::RenderPass handle;
     Renderer* renderer;
     
     RenderPass(Renderer* renderer);
 
-private:
-    friend class Pipeline;
-    friend class SwapChain;
+    vk::RenderPassBeginInfo getBeginInfo(vki::Framebuffer& framebuffer, vk::ClearValue* clearColor);
 };

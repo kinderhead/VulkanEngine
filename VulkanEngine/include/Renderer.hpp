@@ -40,7 +40,6 @@ public:
     shared_ptr<Shader> basicFragShader;
     shared_ptr<Pipeline> basicPipeline;
 
-    // Average C++ destruct order error
     unique_ptr<SwapChain> swapChain;
 
     bool enableDebugLogs = true;
@@ -50,6 +49,10 @@ public:
     void log(string txt);
 
 private:
+    // Average C++ destruct order error
+    vki::CommandPool commandPool;
+    vector<vki::CommandBuffer> commandBuffers;
+
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
 
     friend class SwapChain;

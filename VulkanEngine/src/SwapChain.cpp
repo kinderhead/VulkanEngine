@@ -93,7 +93,7 @@ void SwapChain::populateFramebuffers(shared_ptr<RenderPass> renderPass)
 
         try
         {
-            frameBuffers.push_back(renderer->device.createFramebuffer(framebufferInfo));
+            framebuffers.push_back(renderer->device.createFramebuffer(framebufferInfo));
         }
         catch (vk::SystemError err)
         {

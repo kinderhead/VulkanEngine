@@ -7,6 +7,7 @@
 #include <set>
 #include <vector>
 #include <fstream>
+#include <array>
 
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>

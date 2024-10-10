@@ -18,10 +18,12 @@ class SwapChain
 
     vector<vk::Image> images;
     vector<vki::ImageView> imageViews;
-    vector<vki::Framebuffer> frameBuffers;
 public:
     vk::Format imageFormat;
     vk::Extent2D extent;
+
+    vector<vki::Framebuffer> framebuffers;
+
     Renderer* renderer;
 
     SwapChain(Renderer* renderer);
