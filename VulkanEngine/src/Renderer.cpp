@@ -73,6 +73,14 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     // Make swapchain
     swapChain = make_unique<SwapChain>(this);
     log("Created swap chain");
+
+    // Do shader things
+    basicVertShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.vert.spv", vk::ShaderStageFlagBits::eVertex);
+    basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
+    log("Compiled shaders");
+
+    basicPipeline = make_shared<Pipeline>(vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader });
+    log("Created render pipeline");
 }
 
 void Renderer::log(string txt)

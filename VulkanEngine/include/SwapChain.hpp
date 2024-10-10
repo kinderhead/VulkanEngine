@@ -14,10 +14,12 @@ class Renderer; // Forward declaration
 class SwapChain
 {
     vki::SwapchainKHR handle;
+
     vector<vk::Image> images;
+    vector<vki::ImageView> imageViews;    
+public:
     vk::Format imageFormat;
     vk::Extent2D extent;
-public:
     Renderer* renderer;
     
     SwapChain(Renderer* renderer);

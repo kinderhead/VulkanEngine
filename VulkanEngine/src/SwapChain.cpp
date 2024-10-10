@@ -4,6 +4,7 @@
 
 SwapChain::SwapChain(Renderer* renderer) : handle({}), renderer(renderer)
 {
+    // Init swap chain
     auto indices = renderer->findQueueFamilies(renderer->physicalDevice);
     vector<uint32_t> queueFamilyIndices = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
@@ -47,6 +48,33 @@ SwapChain::SwapChain(Renderer* renderer) : handle({}), renderer(renderer)
     images = handle.getImages();
     imageFormat = surfaceFormat.format;
     extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+    // Make image views
+    for (size_t i = 0; i < images.size(); i++)
+    {
+        vk::ImageViewCreateInfo info = {};
+        info.image = images[i];
+        info.viewType = vk::ImageViewType::e2D;
+        info.format = imageFormat;
+        info.components.r = vk::ComponentSwizzle::eIdentity;
+        info.components.g = vk::ComponentSwizzle::eIdentity;
+        info.components.b = vk::ComponentSwizzle::eIdentity;
+        info.components.a = vk::ComponentSwizzle::eIdentity;
+        info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        info.subresourceRange.baseMipLevel = 0;
+        info.subresourceRange.levelCount = 1;
+        info.subresourceRange.baseArrayLayer = 0;
+        info.subresourceRange.layerCount = 1;
+
+        try
+        {
+            imageViews.push_back(renderer->device.createImageView(info));
+        }
+        catch (vk::SystemError err)
+        {
+            throw std::runtime_error("failed to create image views!");
+        }
+    }
 }
 
 SwapChainSupportDetails SwapChain::querySwapChainSupport(vki::PhysicalDevice device)

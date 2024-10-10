@@ -2,6 +2,8 @@
 
 #include "utils.hpp"
 #include "SwapChain.hpp"
+#include "Shader.hpp"
+#include "Pipeline.hpp"
 
 struct QueueFamilyIndices
 {
@@ -20,10 +22,7 @@ class Renderer
     vki::Instance instance;
 
     vki::PhysicalDevice physicalDevice;
-    vki::Device device;
     vki::SurfaceKHR surface;
-
-    unique_ptr<SwapChain> swapChain;
 
     vki::Queue graphicsQueue;
     vki::Queue presentQueue;
@@ -34,8 +33,17 @@ class Renderer
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 public:
+    vki::Device device;
+
+    shared_ptr<Shader> basicVertShader;
+    shared_ptr<Shader> basicFragShader;
+    shared_ptr<Pipeline> basicPipeline;
+
+    // Average C++ destruct order error
+    unique_ptr<SwapChain> swapChain;
+
     bool enableDebugLogs = true;
-    
+
     Renderer(string title, GLFWwindow* window);
 
     void log(string txt);
