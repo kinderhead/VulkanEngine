@@ -16,6 +16,8 @@ add_library(VulkanEngine
     include/Shader.hpp
     include/Pipeline.hpp
     include/RenderPass.hpp
+    include/Datatypes.hpp
+    include/VertexBuffer.hpp
 )
 
 target_glsl_shaders(

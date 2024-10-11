@@ -1,4 +1,11 @@
 #include "Renderer.hpp"
+#include "VertexBuffer.hpp"
+
+const std::vector<BasicVertex> triangleVertices = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
 
 Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}), physicalDevice({}), graphicsQueue({}), presentQueue({}), surface({}), window(window), commandPool({})
 {
@@ -82,7 +89,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
     log("Compiled shaders");
 
-    basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader });
+    basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader }, BasicVertex::getVertexDefinition());
     log("Created render pipeline");
 
     swapChain->populateFramebuffers(basicPipeline->renderPass);
@@ -101,6 +108,11 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         throw std::runtime_error("Error making command pool");
     }
 
+    // Make vertex buffers
+    triangle = make_shared<VertexBuffer<BasicVertex>>(this, triangleVertices);
+    log("Created typical vertex buffers");
+
+    // More commands
     vk::CommandBufferAllocateInfo allocInfo = {};
     allocInfo.commandPool = commandPool;
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
@@ -125,13 +137,13 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         commandBuffers[i].beginRenderPass(basicPipeline->renderPass->getBeginInfo(swapChain->framebuffers[i], &clearColor), vk::SubpassContents::eInline);
 
         commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, basicPipeline->handle);
-        commandBuffers[i].draw(3, 1, 0, 0);
+        triangle->draw(commandBuffers[i]);
 
         commandBuffers[i].endRenderPass();
         commandBuffers[i].end();
     }
 
-    log("Setup command buffers successful");
+    log("Created command buffers");
 
     try
     {
@@ -241,6 +253,73 @@ void Renderer::log(string txt)
 void Renderer::stop()
 {
     device.waitIdle();
+}
+
+void Renderer::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory)
+{
+    auto bufferInfo = vk::BufferCreateInfo({}, size, usage);
+
+    try
+    {
+        buffer = device.createBuffer(bufferInfo);
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error creating buffer");
+    }
+
+    vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();
+
+    vk::MemoryAllocateInfo allocInfo = {};
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+
+    try
+    {
+        bufferMemory = device.allocateMemory(allocInfo);
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error allocating buffer memory");
+    }
+
+    buffer.bindMemory(bufferMemory, 0);
+}
+
+void Renderer::copyBuffer(vki::Buffer& src, vki::Buffer& dest, vk::DeviceSize size)
+{
+    auto allocInfo = vk::CommandBufferAllocateInfo(commandPool, vk::CommandBufferLevel::ePrimary, 1);
+    auto cmdBuffs = device.allocateCommandBuffers(allocInfo);
+
+    auto beginInfo = vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+    cmdBuffs[0].begin(beginInfo);
+
+    cmdBuffs[0].copyBuffer(src, dest, vk::BufferCopy(0, 0, size));
+    
+    cmdBuffs[0].end();
+
+    vk::CommandBuffer tempBuf = cmdBuffs[0];
+    vk::SubmitInfo submitInfo = {};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &tempBuf;
+
+    graphicsQueue.submit(submitInfo);
+    graphicsQueue.waitIdle();
+}
+
+uint32_t Renderer::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+{
+    vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("Could not find GPU memory type");
 }
 
 QueueFamilyIndices Renderer::findQueueFamilies(vki::PhysicalDevice device)

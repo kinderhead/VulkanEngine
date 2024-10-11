@@ -5,6 +5,7 @@
 #include "Shader.hpp"
 #include "Pipeline.hpp"
 #include "RenderPass.hpp"
+#include "Datatypes.hpp"
 
 struct QueueFamilyIndices
 {
@@ -16,6 +17,9 @@ struct QueueFamilyIndices
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
 };
+
+template <typename TVertex>
+class VertexBuffer; // Forward declaration
 
 class Renderer
 {
@@ -54,8 +58,12 @@ public:
     void renderFrame();
     void stop();
 
-    void log(string txt);
+    void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory);
+    void copyBuffer(vki::Buffer& src, vki::Buffer& dest, vk::DeviceSize size);
 
+    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+
+    void log(string txt);
 private:
     // Average C++ destruct order error
     vki::CommandPool commandPool;
@@ -64,6 +72,8 @@ private:
     vector<vki::Semaphore> imageAvailableSemaphores;
     vector<vki::Semaphore> renderFinishedSemaphores;
     vector<vki::Fence> inFlightFences;
+
+    shared_ptr<VertexBuffer<BasicVertex>> triangle;
 
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
     void recreateSwapChain();

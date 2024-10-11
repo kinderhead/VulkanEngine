@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 
 using namespace std;
+using namespace glm;
 namespace vki = vk::raii;
 
 inline vector<char> readFile(const std::string& filename)

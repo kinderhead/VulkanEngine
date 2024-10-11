@@ -2,7 +2,7 @@
 
 #include "Renderer.hpp"
 
-Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders) : renderer(renderer), layout({}), handle({})
+Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, VertexDefinition vertexDef) : renderer(renderer), layout({}), handle({})
 {
     renderPass = make_shared<RenderPass>(renderer);
 
@@ -14,8 +14,10 @@ Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders) : ren
     }
 
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &vertexDef.binding;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexDef.attributes.size());
+    vertexInputInfo.pVertexAttributeDescriptions = vertexDef.attributes.data();
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
     inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;

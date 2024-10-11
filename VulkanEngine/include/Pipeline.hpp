@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include "Shader.hpp"
 #include "RenderPass.hpp"
+#include "Datatypes.hpp"
 
 class Pipeline
 {
@@ -14,5 +15,5 @@ public:
 
     shared_ptr<RenderPass> renderPass;
         
-    Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders);
+    Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, VertexDefinition vertexDef);
 };
