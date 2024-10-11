@@ -33,6 +33,9 @@ class Renderer
     std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
+
+    long currentFlightFrame = 0;
+    bool framebufferResized = false;
 public:
     vki::Device device;
 
@@ -42,9 +45,14 @@ public:
 
     unique_ptr<SwapChain> swapChain;
 
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
     bool enableDebugLogs = true;
 
     Renderer(string title, GLFWwindow* window);
+
+    void renderFrame();
+    void stop();
 
     void log(string txt);
 
@@ -53,7 +61,14 @@ private:
     vki::CommandPool commandPool;
     vector<vki::CommandBuffer> commandBuffers;
 
+    vector<vki::Semaphore> imageAvailableSemaphores;
+    vector<vki::Semaphore> renderFinishedSemaphores;
+    vector<vki::Fence> inFlightFences;
+
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
+    void recreateSwapChain();
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
     friend class SwapChain;
 };

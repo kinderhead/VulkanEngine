@@ -2,6 +2,9 @@
 
 Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}), physicalDevice({}), graphicsQueue({}), presentQueue({}), surface({}), window(window), commandPool({})
 {
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
     // Init
     log("Initializing Vulkan");
 
@@ -127,6 +130,104 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         commandBuffers[i].endRenderPass();
         commandBuffers[i].end();
     }
+
+    log("Setup command buffers successful");
+
+    try
+    {
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            imageAvailableSemaphores.push_back(device.createSemaphore({}));
+            renderFinishedSemaphores.push_back(device.createSemaphore({}));
+            inFlightFences.push_back(device.createFence({ vk::FenceCreateFlagBits::eSignaled }));
+        }
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error creating sync objects");
+    }
+
+    log("Created syncronization objects");
+}
+
+void Renderer::renderFrame()
+{
+    auto fence = *inFlightFences[currentFlightFrame];
+    if (device.waitForFences(vk::ArrayProxy<vk::Fence>(1, &fence), true, numeric_limits<uint64_t>::max()) != vk::Result::eSuccess)
+    {
+        throw runtime_error("Error waiting for device");
+    }
+
+    uint32_t imageIndex;
+        try {
+            auto res = swapChain->handle.acquireNextImage(numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFlightFrame]);
+            imageIndex = res.second;
+        } catch (vk::OutOfDateKHRError err) {
+            recreateSwapChain();
+            return;
+        } catch (vk::SystemError err) {
+            throw std::runtime_error("Error getting frame");
+        }
+
+    vk::SubmitInfo submitInfo = {};
+
+    vk::Semaphore waitSemaphores[] = { imageAvailableSemaphores[currentFlightFrame] };
+    vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+
+    submitInfo.commandBufferCount = 1;
+
+    auto buf = *commandBuffers[imageIndex];
+    submitInfo.pCommandBuffers = &buf;
+
+    vk::Semaphore signalSemaphores[] = { renderFinishedSemaphores[currentFlightFrame] };
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    device.resetFences(vk::ArrayProxy<vk::Fence>(1, &fence));
+
+    try
+    {
+        graphicsQueue.submit(submitInfo, inFlightFences[currentFlightFrame]);
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error drawing :(");
+    }
+
+    vk::PresentInfoKHR presentInfo = {};
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    vk::SwapchainKHR swapChains[] = { swapChain->handle };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    vk::Result resultPresent;
+    try
+    {
+        resultPresent = presentQueue.presentKHR(presentInfo);
+    }
+    catch (vk::OutOfDateKHRError err)
+    {
+        resultPresent = vk::Result::eErrorOutOfDateKHR;
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error presenting frame");
+    }
+
+    if (resultPresent == vk::Result::eErrorOutOfDateKHR || resultPresent == vk::Result::eSuboptimalKHR || framebufferResized)
+    {
+        framebufferResized = false;
+        recreateSwapChain();
+    }
+
+    currentFlightFrame = (currentFlightFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void Renderer::log(string txt)
@@ -135,6 +236,11 @@ void Renderer::log(string txt)
     {
         cout << txt << "\n";
     }
+}
+
+void Renderer::stop()
+{
+    device.waitIdle();
 }
 
 QueueFamilyIndices Renderer::findQueueFamilies(vki::PhysicalDevice device)
@@ -165,4 +271,26 @@ QueueFamilyIndices Renderer::findQueueFamilies(vki::PhysicalDevice device)
     }
 
     return indices;
+}
+
+void Renderer::recreateSwapChain()
+{
+    int width = 0, height = 0;
+    while (width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    device.waitIdle();
+
+    swapChain.reset(nullptr);
+    swapChain = make_unique<SwapChain>(this);
+    swapChain->populateFramebuffers(basicPipeline->renderPass);
+}
+
+void Renderer::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    auto app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
 }

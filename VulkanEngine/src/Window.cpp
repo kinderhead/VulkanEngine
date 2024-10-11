@@ -27,6 +27,10 @@ void Window::run()
         glfwPollEvents();
 
         update();
+
         render();
+        renderer->renderFrame();
     }
+
+    renderer->stop();
 }

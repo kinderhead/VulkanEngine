@@ -14,11 +14,10 @@ class RenderPass;
 
 class SwapChain
 {
-    vki::SwapchainKHR handle;
-
     vector<vk::Image> images;
     vector<vki::ImageView> imageViews;
 public:
+    vki::SwapchainKHR handle;
     vk::Format imageFormat;
     vk::Extent2D extent;
 

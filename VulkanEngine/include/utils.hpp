@@ -11,6 +11,7 @@
 
 #include <vulkan/vulkan_raii.hpp>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 using namespace std;
 namespace vki = vk::raii;
