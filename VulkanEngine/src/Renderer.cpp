@@ -1,10 +1,15 @@
 #include "Renderer.hpp"
-#include "VertexBuffer.hpp"
+#include "Model.hpp"
 
-const std::vector<BasicVertex> triangleVertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+const std::vector<BasicVertex> rectangleVertices = {
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint32_t> rectangleIndices = {
+    0, 1, 2, 2, 3, 0
 };
 
 Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}), physicalDevice({}), graphicsQueue({}), presentQueue({}), surface({}), window(window), commandPool({})
@@ -108,9 +113,9 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         throw std::runtime_error("Error making command pool");
     }
 
-    // Make vertex buffers
-    triangle = make_shared<VertexBuffer<BasicVertex>>(this, triangleVertices);
-    log("Created typical vertex buffers");
+    // Make models
+    rectangle = make_shared<Model<BasicVertex>>(this, rectangleVertices, rectangleIndices);
+    log("Created typical models");
 
     // More commands
     vk::CommandBufferAllocateInfo allocInfo = {};
@@ -137,7 +142,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         commandBuffers[i].beginRenderPass(basicPipeline->renderPass->getBeginInfo(swapChain->framebuffers[i], &clearColor), vk::SubpassContents::eInline);
 
         commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, basicPipeline->handle);
-        triangle->draw(commandBuffers[i]);
+        rectangle->draw(commandBuffers[i]);
 
         commandBuffers[i].endRenderPass();
         commandBuffers[i].end();
@@ -171,15 +176,20 @@ void Renderer::renderFrame()
     }
 
     uint32_t imageIndex;
-        try {
-            auto res = swapChain->handle.acquireNextImage(numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFlightFrame]);
-            imageIndex = res.second;
-        } catch (vk::OutOfDateKHRError err) {
-            recreateSwapChain();
-            return;
-        } catch (vk::SystemError err) {
-            throw std::runtime_error("Error getting frame");
-        }
+    try
+    {
+        auto res = swapChain->handle.acquireNextImage(numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFlightFrame]);
+        imageIndex = res.second;
+    }
+    catch (vk::OutOfDateKHRError err)
+    {
+        recreateSwapChain();
+        return;
+    }
+    catch (vk::SystemError err)
+    {
+        throw std::runtime_error("Error getting frame");
+    }
 
     vk::SubmitInfo submitInfo = {};
 
@@ -295,7 +305,7 @@ void Renderer::copyBuffer(vki::Buffer& src, vki::Buffer& dest, vk::DeviceSize si
     cmdBuffs[0].begin(beginInfo);
 
     cmdBuffs[0].copyBuffer(src, dest, vk::BufferCopy(0, 0, size));
-    
+
     cmdBuffs[0].end();
 
     vk::CommandBuffer tempBuf = cmdBuffs[0];

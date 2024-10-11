@@ -19,7 +19,7 @@ struct QueueFamilyIndices
 };
 
 template <typename TVertex>
-class VertexBuffer; // Forward declaration
+class Model; // Forward declaration
 
 class Renderer
 {
@@ -59,6 +59,10 @@ public:
     void stop();
 
     void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory);
+
+    template <typename T>
+    void createBufferWithStaging(vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory, const vector<T>& data);
+
     void copyBuffer(vki::Buffer& src, vki::Buffer& dest, vk::DeviceSize size);
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
@@ -73,7 +77,7 @@ private:
     vector<vki::Semaphore> renderFinishedSemaphores;
     vector<vki::Fence> inFlightFences;
 
-    shared_ptr<VertexBuffer<BasicVertex>> triangle;
+    shared_ptr<Model<BasicVertex>> rectangle;
 
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
     void recreateSwapChain();
@@ -82,3 +86,20 @@ private:
 
     friend class SwapChain;
 };
+
+template<typename T>
+inline void Renderer::createBufferWithStaging(vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory, const vector<T>& data)
+{
+    auto size = sizeof(T) * data.size();
+
+    vki::Buffer stagingBuffer = { 0 };
+    vki::DeviceMemory stagingMemory = { 0 };
+    createBuffer(size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingMemory);
+
+    void* ptr = stagingMemory.mapMemory(0, size);
+    memcpy(ptr, data.data(), size);
+    stagingMemory.unmapMemory();
+
+    createBuffer(size, usage, properties, buffer, bufferMemory);
+    copyBuffer(stagingBuffer, buffer, size);
+}
