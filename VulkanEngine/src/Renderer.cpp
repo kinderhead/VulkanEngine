@@ -37,6 +37,9 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     }
     surface = vki::SurfaceKHR(instance, rawSurface);
 
+    // Validation layers
+    auto availableLayers = vk::enumerateInstanceLayerProperties();
+
     // Pick device
     auto devices = instance.enumeratePhysicalDevices();
     if (!devices.size())
@@ -94,7 +97,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
     log("Compiled shaders");
 
-    basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader }, BasicVertex::getVertexDefinition());
+    basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader }, BasicVertex::getVertexDefinition(), sizeof(BasicUBO));
     log("Created render pipeline");
 
     swapChain->populateFramebuffers(basicPipeline->renderPass);
@@ -142,6 +145,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         commandBuffers[i].beginRenderPass(basicPipeline->renderPass->getBeginInfo(swapChain->framebuffers[i], &clearColor), vk::SubpassContents::eInline);
 
         commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, basicPipeline->handle);
+        basicPipeline->bind(commandBuffers[1]);
         rectangle->draw(commandBuffers[i]);
 
         commandBuffers[i].endRenderPass();

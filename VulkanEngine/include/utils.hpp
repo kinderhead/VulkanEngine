@@ -10,8 +10,10 @@
 #include <array>
 
 #include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_enums.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 using namespace std;
 using namespace glm;

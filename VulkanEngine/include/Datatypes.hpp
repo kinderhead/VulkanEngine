@@ -36,3 +36,11 @@ struct BasicVertex
         return { bindingDescription, attributeDescriptions };
     }
 };
+
+struct BasicUBO
+{
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+};
+

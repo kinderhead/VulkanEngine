@@ -33,4 +33,7 @@ target_include_directories(VulkanEngine PUBLIC include ../Vulkan-Hpp/vulkan)
 
 set_property(TARGET VulkanEngine PROPERTY CXX_STANDARD 23)
 
-target_link_libraries(VulkanEngine PUBLIC Vulkan::Headers glfw glm)
+find_package(Vulkan REQUIRED)
+CPMAddPackage("https://github.com/g-truc/glm/archive/refs/heads/master.zip")
+
+target_link_libraries(VulkanEngine PUBLIC Vulkan::Vulkan glfw glm)

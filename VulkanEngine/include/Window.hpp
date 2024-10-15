@@ -7,8 +7,9 @@ class Window
 {
     GLFWwindow* window;
 
-    unique_ptr<Renderer> renderer;
 public:
+    unique_ptr<Renderer> renderer;
+
     Window(string title, int width, int height);
     ~Window();
 

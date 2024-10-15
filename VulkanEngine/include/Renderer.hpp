@@ -38,9 +38,10 @@ class Renderer
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    long currentFlightFrame = 0;
     bool framebufferResized = false;
+
 public:
+    long currentFlightFrame = 0;
     vki::Device device;
 
     shared_ptr<Shader> basicVertShader;

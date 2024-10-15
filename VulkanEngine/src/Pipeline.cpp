@@ -2,8 +2,39 @@
 
 #include "Renderer.hpp"
 
-Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, VertexDefinition vertexDef) : renderer(renderer), layout({}), handle({})
+Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, VertexDefinition vertexDef, vk::DeviceSize uboSize) : renderer(renderer), layout({}), handle({}), descriptorLayout({}), uboSize(uboSize), descriptorPool({}), descriptorSets({})
 {
+    // Make UBO
+    auto uboLayoutBinding = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex);
+
+    auto layoutInfo = vk::DescriptorSetLayoutCreateInfo({}, 1, &uboLayoutBinding);
+    descriptorLayout = renderer->device.createDescriptorSetLayout(layoutInfo);
+
+    for (int i = 0; i < renderer->MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        uniformBuffers.push_back({0});
+        uniformBuffersMemory.push_back({0});
+
+        renderer->createBuffer(uboSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, uniformBuffers[i], uniformBuffersMemory[i]);
+        uniformBuffersMapped.push_back(uniformBuffersMemory[i].mapMemory(0, uboSize));
+    }
+
+    auto poolSize = vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, renderer->MAX_FRAMES_IN_FLIGHT);
+    auto poolInfo = vk::DescriptorPoolCreateInfo({}, renderer->MAX_FRAMES_IN_FLIGHT, 1, &poolSize);
+
+    descriptorPool = renderer->device.createDescriptorPool(poolInfo);
+
+    vector<vk::DescriptorSetLayout> layouts(renderer->MAX_FRAMES_IN_FLIGHT, descriptorLayout);
+    auto allocInfo = vk::DescriptorSetAllocateInfo(descriptorPool, renderer->MAX_FRAMES_IN_FLIGHT, layouts.data());
+    descriptorSets = vki::DescriptorSets(renderer->device, allocInfo);
+
+    for (size_t i = 0; i < renderer->MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        auto writeSet = vk::WriteDescriptorSet(descriptorSets[i], 0, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, array<vk::DescriptorBufferInfo, 1>{ vk::DescriptorBufferInfo(uniformBuffers[i], 0, uboSize) }.data());
+        renderer->device.updateDescriptorSets({ 1, &writeSet }, { });
+    }
+    
+    // Do pipeline stuff
     renderPass = make_shared<RenderPass>(renderer);
 
     vector<vk::PipelineShaderStageCreateInfo> stages;
@@ -47,7 +78,7 @@ Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, Verte
     rasterizer.polygonMode = vk::PolygonMode::eFill;
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-    rasterizer.frontFace = vk::FrontFace::eClockwise;
+    rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
     rasterizer.depthBiasEnable = VK_FALSE;
 
     vk::PipelineMultisampleStateCreateInfo multisampling = {};
@@ -69,7 +100,8 @@ Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, Verte
     colorBlending.blendConstants[3] = 0.0f;
 
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.setLayoutCount = 0;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &*descriptorLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
 
     try
@@ -103,4 +135,14 @@ Pipeline::Pipeline(Renderer* renderer, vector<shared_ptr<Shader>> shaders, Verte
     {
         throw std::runtime_error("Error creating graphics pipeline");
     }
+}
+
+void Pipeline::setUBO(void* ubo)
+{
+    memcpy(uniformBuffersMapped[renderer->currentFlightFrame], ubo, uboSize);
+}
+
+void Pipeline::bind(vki::CommandBuffer& cmds)
+{
+    cmds.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, 0, {descriptorSets[renderer->currentFlightFrame]}, {});
 }

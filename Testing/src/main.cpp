@@ -2,6 +2,6 @@
 
 int main()
 {
-    TestWindow window("Gaming", 800, 600);
+    TestWindow window("Gaming", 1600, 1200);
     window.run();
 }
