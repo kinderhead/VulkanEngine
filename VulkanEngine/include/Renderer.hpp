@@ -48,8 +48,6 @@ public:
     shared_ptr<Shader> basicFragShader;
     shared_ptr<Pipeline> basicPipeline;
 
-    unique_ptr<SwapChain> swapChain;
-
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
     bool enableDebugLogs = true;
@@ -86,6 +84,10 @@ private:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
     friend class SwapChain;
+
+public:
+    // Thanks C++
+    unique_ptr<SwapChain> swapChain;
 };
 
 template<typename T>

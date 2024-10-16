@@ -17,11 +17,12 @@ class SwapChain
     vector<vk::Image> images;
     vector<vki::ImageView> imageViews;
 public:
-    vki::SwapchainKHR handle;
     vk::Format imageFormat;
     vk::Extent2D extent;
 
     vector<vki::Framebuffer> framebuffers;
+
+    vki::SwapchainKHR handle;
 
     Renderer* renderer;
 

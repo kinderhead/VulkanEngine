@@ -1,6 +1,10 @@
 #include "Renderer.hpp"
 #include "Model.hpp"
 
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
 const std::vector<BasicVertex> rectangleVertices = {
     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
@@ -20,14 +24,14 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     // Init
     log("Initializing Vulkan");
 
-    auto info = vk::ApplicationInfo("Gaming", VK_MAKE_VERSION(1, 1, 0), "VulkanEngine", VK_MAKE_VERSION(1, 1, 0), VK_API_VERSION_1_3);
+    auto info = vk::ApplicationInfo(title.c_str(), VK_MAKE_VERSION(1, 1, 0), "VulkanEngine", VK_MAKE_VERSION(1, 1, 0), VK_API_VERSION_1_3);
 
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
 
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    auto createInfo = vk::InstanceCreateInfo(vk::InstanceCreateFlags(), &info, 0, nullptr, glfwExtensionCount, glfwExtensions);
+    auto createInfo = vk::InstanceCreateInfo(vk::InstanceCreateFlags(), &info, 1, validationLayers.data(), glfwExtensionCount, glfwExtensions);
     instance = vki::Instance(ctx, createInfo);
 
     VkSurfaceKHR rawSurface;
@@ -36,9 +40,6 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         throw std::runtime_error("failed to create window surface!");
     }
     surface = vki::SurfaceKHR(instance, rawSurface);
-
-    // Validation layers
-    auto availableLayers = vk::enumerateInstanceLayerProperties();
 
     // Pick device
     auto devices = instance.enumeratePhysicalDevices();
@@ -75,10 +76,15 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     vector<uint32_t> queueFamilyIndices = { indices.graphicsFamily.value(), indices.presentFamily.value() };
     for (uint32_t i : queueFamilyIndices)
     {
-        queueCreateInfos.push_back({ vk::DeviceQueueCreateFlags(), i, 1, &queuePriority });
+        queueCreateInfos.push_back({ {}, i, 1, &queuePriority });
     }
 
-    auto devInfo = vk::DeviceCreateInfo(vk::DeviceCreateFlags(), static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data());
+    if (indices.graphicsFamily.value() == indices.presentFamily.value())
+    {
+        queueCreateInfos.pop_back();
+    }
+
+    auto devInfo = vk::DeviceCreateInfo({}, static_cast<uint32_t>(queueCreateInfos.size()), queueCreateInfos.data());
     auto devFeatures = vk::PhysicalDeviceFeatures();
     devInfo.pEnabledFeatures = &devFeatures;
     devInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
@@ -88,7 +94,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     graphicsQueue = device.getQueue(indices.graphicsFamily.value(), 0);
     presentQueue = device.getQueue(indices.presentFamily.value(), 0);
 
-    // Make swapchain
+    // Make swapchain'
     swapChain = make_unique<SwapChain>(this);
     log("Created swap chain");
 
@@ -145,7 +151,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         commandBuffers[i].beginRenderPass(basicPipeline->renderPass->getBeginInfo(swapChain->framebuffers[i], &clearColor), vk::SubpassContents::eInline);
 
         commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, basicPipeline->handle);
-        basicPipeline->bind(commandBuffers[1]);
+        basicPipeline->bind(commandBuffers[i]);
         rectangle->draw(commandBuffers[i]);
 
         commandBuffers[i].endRenderPass();
