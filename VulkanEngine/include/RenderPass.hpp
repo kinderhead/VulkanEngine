@@ -12,5 +12,5 @@ public:
     
     RenderPass(Renderer* renderer);
 
-    vk::RenderPassBeginInfo getBeginInfo(vki::Framebuffer& framebuffer, vk::ClearValue* clearColor);
+    vk::RenderPassBeginInfo getBeginInfo(vki::Framebuffer& framebuffer);
 };

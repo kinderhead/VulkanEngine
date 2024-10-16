@@ -8,7 +8,6 @@ void TestWindow::update()
 
 void TestWindow::render()
 {
-    BasicUBO ubo{translate(mat4(1), vec3(50, 50, 0)) * scale(mat4(1), vec3(50)), lookAt(vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)), ortho(0.0f, (float) renderer->swapChain->extent.width, 0.0f, (float) renderer->swapChain->extent.height, -1000.0f, 1000.0f)};
-    
-    renderer->basicPipeline->setUBO(&ubo);
+    renderer->drawRectangle(100, 100, 150, 100, numbers::pi / 4, vec4(1, 1, 0, 1));
+    renderer->drawRectangle(300, 300, 50, 50);
 }

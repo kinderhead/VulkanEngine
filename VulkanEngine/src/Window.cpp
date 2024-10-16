@@ -28,8 +28,9 @@ void Window::run()
 
         update();
 
+        renderer->beginFrame();
         render();
-        renderer->renderFrame();
+        renderer->endFrame();
     }
 
     renderer->stop();

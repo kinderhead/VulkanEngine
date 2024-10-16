@@ -8,6 +8,9 @@
 #include <vector>
 #include <fstream>
 #include <array>
+#include <cmath>
+
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_enums.hpp>

@@ -40,31 +40,41 @@ class Renderer
 
     bool framebufferResized = false;
 
+    uint32_t currentFrameImageIndex;
+
 public:
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
     long currentFlightFrame = 0;
     vki::Device device;
+
+    shared_ptr<RenderPass> renderPass;
 
     shared_ptr<Shader> basicVertShader;
     shared_ptr<Shader> basicFragShader;
     shared_ptr<Pipeline> basicPipeline;
 
-    const int MAX_FRAMES_IN_FLIGHT = 2;
+    vk::ClearValue clearColor = { array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } };
 
     bool enableDebugLogs = true;
 
     Renderer(string title, GLFWwindow* window);
 
-    void renderFrame();
+    void beginFrame();
+    void endFrame();
     void stop();
 
     void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory);
-
     template <typename T>
     void createBufferWithStaging(vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vki::Buffer& buffer, vki::DeviceMemory& bufferMemory, const vector<T>& data);
-
     void copyBuffer(vki::Buffer& src, vki::Buffer& dest, vk::DeviceSize size);
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+
+    // Rendering
+    void drawRectangle(int x, int y, int width, int height, float rotation = 0, vec4 color = { 1, 1, 1, 1 });
+
+    BasicUBO getNewUBO();
 
     void log(string txt);
 private:

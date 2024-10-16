@@ -6,10 +6,10 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<BasicVertex> rectangleVertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+    {{0.0f, 0.0f}},
+    {{1.0f, 0.0f}},
+    {{1.0f, 1.0f}},
+    {{0.0f, 1.0f}}
 };
 
 const std::vector<uint32_t> rectangleIndices = {
@@ -103,14 +103,17 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
     log("Compiled shaders");
 
+    renderPass = make_shared<RenderPass>(this);
+    log("Created base render pass");
+
     basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader }, BasicVertex::getVertexDefinition(), sizeof(BasicUBO));
     log("Created render pipeline");
 
-    swapChain->populateFramebuffers(basicPipeline->renderPass);
+    swapChain->populateFramebuffers(renderPass);
     log("Created framebuffers");
 
     // Setup commands
-    vk::CommandPoolCreateInfo poolInfo = {};
+    vk::CommandPoolCreateInfo poolInfo = {vk::CommandPoolCreateFlagBits::eResetCommandBuffer};
     poolInfo.queueFamilyIndex = indices.graphicsFamily.value();
 
     try
@@ -130,10 +133,8 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     vk::CommandBufferAllocateInfo allocInfo = {};
     allocInfo.commandPool = commandPool;
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandBufferCount = (uint32_t) swapChain->framebuffers.size();
-
-    vk::ClearValue clearColor = { array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } };
-
+    allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+    
     try
     {
         commandBuffers = device.allocateCommandBuffers(allocInfo);
@@ -141,21 +142,6 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     catch (vk::SystemError err)
     {
         throw std::runtime_error("Error allocating command buffers");
-    }
-
-    for (size_t i = 0; i < commandBuffers.size(); i++)
-    {
-        vk::CommandBufferBeginInfo beginInfo = {};
-        beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-        commandBuffers[i].begin(beginInfo);
-        commandBuffers[i].beginRenderPass(basicPipeline->renderPass->getBeginInfo(swapChain->framebuffers[i], &clearColor), vk::SubpassContents::eInline);
-
-        commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, basicPipeline->handle);
-        basicPipeline->bind(commandBuffers[i]);
-        rectangle->draw(commandBuffers[i]);
-
-        commandBuffers[i].endRenderPass();
-        commandBuffers[i].end();
     }
 
     log("Created command buffers");
@@ -177,7 +163,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     log("Created syncronization objects");
 }
 
-void Renderer::renderFrame()
+void Renderer::beginFrame()
 {
     auto fence = *inFlightFences[currentFlightFrame];
     if (device.waitForFences(vk::ArrayProxy<vk::Fence>(1, &fence), true, numeric_limits<uint64_t>::max()) != vk::Result::eSuccess)
@@ -185,11 +171,10 @@ void Renderer::renderFrame()
         throw runtime_error("Error waiting for device");
     }
 
-    uint32_t imageIndex;
     try
     {
         auto res = swapChain->handle.acquireNextImage(numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFlightFrame]);
-        imageIndex = res.second;
+        currentFrameImageIndex = res.second;
     }
     catch (vk::OutOfDateKHRError err)
     {
@@ -201,6 +186,22 @@ void Renderer::renderFrame()
         throw std::runtime_error("Error getting frame");
     }
 
+    device.resetFences(vk::ArrayProxy<vk::Fence>(1, &fence));
+    commandBuffers[currentFlightFrame].reset();
+
+    commandBuffers[currentFlightFrame].begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse});
+    commandBuffers[currentFlightFrame].beginRenderPass(renderPass->getBeginInfo(swapChain->framebuffers[currentFrameImageIndex]), vk::SubpassContents::eInline);
+
+    basicPipeline->beginFrame();
+}
+
+void Renderer::endFrame()
+{
+    commandBuffers[currentFlightFrame].endRenderPass();
+    commandBuffers[currentFlightFrame].end();
+
+    auto fence = *inFlightFences[currentFlightFrame];
+
     vk::SubmitInfo submitInfo = {};
 
     vk::Semaphore waitSemaphores[] = { imageAvailableSemaphores[currentFlightFrame] };
@@ -211,14 +212,12 @@ void Renderer::renderFrame()
 
     submitInfo.commandBufferCount = 1;
 
-    auto buf = *commandBuffers[imageIndex];
+    auto buf = *commandBuffers[currentFlightFrame];
     submitInfo.pCommandBuffers = &buf;
 
     vk::Semaphore signalSemaphores[] = { renderFinishedSemaphores[currentFlightFrame] };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-
-    device.resetFences(vk::ArrayProxy<vk::Fence>(1, &fence));
 
     try
     {
@@ -236,7 +235,7 @@ void Renderer::renderFrame()
     vk::SwapchainKHR swapChains[] = { swapChain->handle };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pImageIndices = &currentFrameImageIndex;
     presentInfo.pResults = nullptr;
 
     vk::Result resultPresent;
@@ -385,11 +384,27 @@ void Renderer::recreateSwapChain()
 
     swapChain.reset(nullptr);
     swapChain = make_unique<SwapChain>(this);
-    swapChain->populateFramebuffers(basicPipeline->renderPass);
+    swapChain->populateFramebuffers(renderPass);
 }
 
 void Renderer::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     auto app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
+}
+
+void Renderer::drawRectangle(int x, int y, int width, int height, float rotation, vec4 color)
+{
+    auto ubo = getNewUBO();
+    ubo.model = translate(mat4(1), vec3(x, y, 0)) * rotate(mat4(1), rotation, vec3(0, 0, 1)) * scale(mat4(1), vec3(width, height, 0));
+    ubo.color = color;
+    
+    basicPipeline->bind(commandBuffers[currentFlightFrame]);
+    basicPipeline->getUniformSet()->bindAndSetUBO(ubo, commandBuffers[currentFlightFrame]);
+    rectangle->draw(commandBuffers[currentFlightFrame]);
+}
+
+BasicUBO Renderer::getNewUBO()
+{
+    return {mat4(1), lookAt(vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)), ortho(0.0f, (float)swapChain->extent.width, 0.0f, (float)swapChain->extent.height, -1000.0f, 1000.0f)};
 }

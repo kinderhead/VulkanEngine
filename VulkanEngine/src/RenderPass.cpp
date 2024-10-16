@@ -49,7 +49,7 @@ RenderPass::RenderPass(Renderer* renderer) : renderer(renderer), handle({})
     }
 }
 
-vk::RenderPassBeginInfo RenderPass::getBeginInfo(vki::Framebuffer& framebuffer, vk::ClearValue* clearColor)
+vk::RenderPassBeginInfo RenderPass::getBeginInfo(vki::Framebuffer& framebuffer)
 {
     vk::RenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.renderPass = handle;
@@ -58,6 +58,6 @@ vk::RenderPassBeginInfo RenderPass::getBeginInfo(vki::Framebuffer& framebuffer, 
     renderPassInfo.renderArea.extent = renderer->swapChain->extent;
 
     renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = clearColor;
+    renderPassInfo.pClearValues = &renderer->clearColor;
     return renderPassInfo;
 }

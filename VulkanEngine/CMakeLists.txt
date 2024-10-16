@@ -8,6 +8,7 @@ add_library(VulkanEngine
     src/Shader.cpp
     src/Pipeline.cpp
     src/RenderPass.cpp
+    src/UniformSet.cpp
 
     include/utils.hpp
     include/Window.hpp
@@ -18,6 +19,7 @@ add_library(VulkanEngine
     include/RenderPass.hpp
     include/Datatypes.hpp
     include/Model.hpp
+    include/UniformSet.hpp
 )
 
 target_glsl_shaders(
