@@ -50,10 +50,6 @@ public:
 
     shared_ptr<RenderPass> renderPass;
 
-    shared_ptr<Shader> basicVertShader;
-    shared_ptr<Shader> basicFragShader;
-    shared_ptr<Pipeline> basicPipeline;
-
     vk::ClearValue clearColor = { array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } };
 
     bool enableDebugLogs = true;
@@ -72,7 +68,8 @@ public:
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 
     // Rendering
-    void drawRectangle(int x, int y, int width, int height, float rotation = 0, vec4 color = { 1, 1, 1, 1 });
+    void drawRectangle(int x, int y, int width, int height, float rotation = 0, vec4 color = {1, 1, 1, 1});
+    void drawElipse(int x, int y, int width, int height, float rotation = 0, vec4 color = {1, 1, 1, 1});
 
     BasicUBO getNewUBO();
 
@@ -86,7 +83,16 @@ private:
     vector<vki::Semaphore> renderFinishedSemaphores;
     vector<vki::Fence> inFlightFences;
 
+    shared_ptr<Shader> basicVertShader;
+    shared_ptr<Shader> basicFragShader;
+    shared_ptr<Pipeline> basicPipeline;
+
+    shared_ptr<Shader> elipseVertShader;
+    shared_ptr<Shader> elipseFragShader;
+    shared_ptr<Pipeline> elipsePipeline;
+    
     shared_ptr<Model<BasicVertex>> rectangle;
+    shared_ptr<Model<BasicVertex>> triangle;
 
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
     void recreateSwapChain();

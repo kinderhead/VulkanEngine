@@ -13,7 +13,7 @@ class Pipeline
     vk::DeviceSize uboSize;
 
     vector<shared_ptr<UniformSet>> uniforms;
-    int uniformSetsThisFrame;
+    int uniformSetsThisFrame = 0;
 public:
     Renderer* renderer;
 

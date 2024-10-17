@@ -16,6 +16,16 @@ const std::vector<uint32_t> rectangleIndices = {
     0, 1, 2, 2, 3, 0
 };
 
+const std::vector<BasicVertex> triangleVertices = {
+    {{0.0f, -1.25f}},
+    {{1.25f, 1.25f}},
+    {{0.0f, 1.25f}}
+};
+
+const std::vector<uint32_t> triangleIndices = {
+    0, 1, 2
+};
+
 Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}), physicalDevice({}), graphicsQueue({}), presentQueue({}), surface({}), window(window), commandPool({})
 {
     glfwSetWindowUserPointer(window, this);
@@ -101,13 +111,16 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     // Do things
     basicVertShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.vert.spv", vk::ShaderStageFlagBits::eVertex);
     basicFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/shader.frag.spv", vk::ShaderStageFlagBits::eFragment);
+    elipseVertShader = make_shared<Shader>(this, "VulkanEngine/shaders/elipse.vert.spv", vk::ShaderStageFlagBits::eVertex);
+    elipseFragShader = make_shared<Shader>(this, "VulkanEngine/shaders/elipse.frag.spv", vk::ShaderStageFlagBits::eFragment);
     log("Compiled shaders");
 
     renderPass = make_shared<RenderPass>(this);
     log("Created base render pass");
 
     basicPipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ basicVertShader, basicFragShader }, BasicVertex::getVertexDefinition(), sizeof(BasicUBO));
-    log("Created render pipeline");
+    elipsePipeline = make_shared<Pipeline>(this, vector<shared_ptr<Shader>>{ elipseVertShader, elipseFragShader }, BasicVertex::getVertexDefinition(), sizeof(BasicUBO));
+    log("Created render pipelines");
 
     swapChain->populateFramebuffers(renderPass);
     log("Created framebuffers");
@@ -127,6 +140,7 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
 
     // Make models
     rectangle = make_shared<Model<BasicVertex>>(this, rectangleVertices, rectangleIndices);
+    triangle = make_shared<Model<BasicVertex>>(this, triangleVertices, triangleIndices);
     log("Created typical models");
 
     // More commands
@@ -193,6 +207,7 @@ void Renderer::beginFrame()
     commandBuffers[currentFlightFrame].beginRenderPass(renderPass->getBeginInfo(swapChain->framebuffers[currentFrameImageIndex]), vk::SubpassContents::eInline);
 
     basicPipeline->beginFrame();
+    elipsePipeline->beginFrame();
 }
 
 void Renderer::endFrame()
@@ -402,6 +417,17 @@ void Renderer::drawRectangle(int x, int y, int width, int height, float rotation
     basicPipeline->bind(commandBuffers[currentFlightFrame]);
     basicPipeline->getUniformSet()->bindAndSetUBO(ubo, commandBuffers[currentFlightFrame]);
     rectangle->draw(commandBuffers[currentFlightFrame]);
+}
+
+void Renderer::drawElipse(int x, int y, int width, int height, float rotation, vec4 color)
+{
+    auto ubo = getNewUBO();
+    ubo.model = translate(mat4(1), vec3(x, y, 0)) * rotate(mat4(1), rotation, vec3(0, 0, 1)) * scale(mat4(1), vec3(width, height, 0));
+    ubo.color = color;
+    
+    elipsePipeline->bind(commandBuffers[currentFlightFrame]);
+    elipsePipeline->getUniformSet()->bindAndSetUBO(ubo, commandBuffers[currentFlightFrame]);
+    triangle->draw(commandBuffers[currentFlightFrame]);
 }
 
 BasicUBO Renderer::getNewUBO()

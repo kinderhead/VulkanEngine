@@ -25,8 +25,11 @@ add_library(VulkanEngine
 target_glsl_shaders(
     VulkanEngine
     PUBLIC
+
     shaders/shader.frag
     shaders/shader.vert
+    shaders/elipse.frag
+    shaders/elipse.vert
 
     COMPILE_OPTIONS --target-env vulkan1.3
 )
