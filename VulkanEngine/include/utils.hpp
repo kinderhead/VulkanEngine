@@ -9,6 +9,7 @@
 #include <fstream>
 #include <array>
 #include <cmath>
+#include <unordered_map>
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 

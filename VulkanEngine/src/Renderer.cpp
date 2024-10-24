@@ -5,24 +5,24 @@ const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-const std::vector<BasicVertex> rectangleVertices = {
+std::vector<BasicVertex> rectangleVertices = {
     {{0.0f, 0.0f}},
     {{1.0f, 0.0f}},
     {{1.0f, 1.0f}},
     {{0.0f, 1.0f}}
 };
 
-const std::vector<uint32_t> rectangleIndices = {
+std::vector<uint32_t> rectangleIndices = {
     0, 1, 2, 2, 3, 0
 };
 
-const std::vector<BasicVertex> triangleVertices = {
+std::vector<BasicVertex> triangleVertices = {
     {{0.0f, -1.25f}},
     {{1.25f, 1.25f}},
     {{0.0f, 1.25f}}
 };
 
-const std::vector<uint32_t> triangleIndices = {
+std::vector<uint32_t> triangleIndices = {
     0, 1, 2
 };
 
@@ -65,6 +65,17 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
         if (findQueueFamilies(i).isComplete())
         {
             physicalDevice = i;
+
+            auto props = i.getProperties();
+            auto counts = props.limits.framebufferColorSampleCounts;// & props.limits.framebufferDepthSampleCounts;
+
+            if (counts & vk::SampleCountFlagBits::e64) { msaaSamples = vk::SampleCountFlagBits::e64; }
+            else if (counts & vk::SampleCountFlagBits::e32) { msaaSamples = vk::SampleCountFlagBits::e32; }
+            else if (counts & vk::SampleCountFlagBits::e16) { msaaSamples = vk::SampleCountFlagBits::e16; }
+            else if (counts & vk::SampleCountFlagBits::e8) { msaaSamples = vk::SampleCountFlagBits::e8; }
+            else if (counts & vk::SampleCountFlagBits::e4) { msaaSamples = vk::SampleCountFlagBits::e4; }
+            else if (counts & vk::SampleCountFlagBits::e2) { msaaSamples = vk::SampleCountFlagBits::e2; }
+
             log("Using device: " + string(physicalDevice.getProperties().deviceName));
             found = true;
             break;
@@ -139,6 +150,8 @@ Renderer::Renderer(string title, GLFWwindow* window) : instance({}), device({}),
     }
 
     // Make models
+    dynamicModels.resize(MAX_FRAMES_IN_FLIGHT);
+
     rectangle = make_shared<Model<BasicVertex>>(this, rectangleVertices, rectangleIndices);
     triangle = make_shared<Model<BasicVertex>>(this, triangleVertices, triangleIndices);
     log("Created typical models");
@@ -208,6 +221,8 @@ void Renderer::beginFrame()
 
     basicPipeline->beginFrame();
     elipsePipeline->beginFrame();
+
+    dynamicModelsThisFrame = 0;
 }
 
 void Renderer::endFrame()
@@ -410,27 +425,34 @@ void Renderer::framebufferResizeCallback(GLFWwindow* window, int width, int heig
 
 void Renderer::drawRectangle(int x, int y, int width, int height, float rotation, vec4 color)
 {
-    auto ubo = getNewUBO();
-    ubo.model = translate(mat4(1), vec3(x, y, 0)) * rotate(mat4(1), rotation, vec3(0, 0, 1)) * scale(mat4(1), vec3(width, height, 0));
-    ubo.color = color;
-    
-    basicPipeline->bind(commandBuffers[currentFlightFrame]);
-    basicPipeline->getUniformSet()->bindAndSetUBO(ubo, commandBuffers[currentFlightFrame]);
-    rectangle->draw(commandBuffers[currentFlightFrame]);
+    drawModel(rectangle, basicPipeline, getNewUBO(x, y, width, height, rotation, color));
 }
 
 void Renderer::drawElipse(int x, int y, int width, int height, float rotation, vec4 color)
 {
-    auto ubo = getNewUBO();
-    ubo.model = translate(mat4(1), vec3(x, y, 0)) * rotate(mat4(1), rotation, vec3(0, 0, 1)) * scale(mat4(1), vec3(width, height, 0));
-    ubo.color = color;
-    
-    elipsePipeline->bind(commandBuffers[currentFlightFrame]);
-    elipsePipeline->getUniformSet()->bindAndSetUBO(ubo, commandBuffers[currentFlightFrame]);
-    triangle->draw(commandBuffers[currentFlightFrame]);
+    drawModel(triangle, elipsePipeline, getNewUBO(x, y, width, height, rotation, color));
+}
+
+void Renderer::drawModelTemplateless(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, void* ubo)
+{
+    pipeline->bind(commandBuffers[currentFlightFrame]);
+
+    auto uniforms = pipeline->getUniformSet();
+    uniforms->setUBO(ubo);
+    uniforms->bind(commandBuffers[currentFlightFrame]);
+
+    model->draw(commandBuffers[currentFlightFrame]);
 }
 
 BasicUBO Renderer::getNewUBO()
 {
     return {mat4(1), lookAt(vec3(0.0f, 0.0f, 1.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f)), ortho(0.0f, (float)swapChain->extent.width, 0.0f, (float)swapChain->extent.height, -1000.0f, 1000.0f)};
+}
+
+BasicUBO Renderer::getNewUBO(int x, int y, int width, int height, float rotation, vec4 color)
+{
+    auto ubo = getNewUBO();
+    ubo.model = translate(mat4(1), vec3(x, y, 0)) * rotate(mat4(1), rotation, vec3(0, 0, 1)) * scale(mat4(1), vec3(width, height, 0));
+    ubo.color = color;
+    return ubo;
 }

@@ -20,6 +20,9 @@ struct QueueFamilyIndices
 
 template <typename TVertex>
 class Model; // Forward declaration
+template <typename TVertex>
+class DynamicModel;
+class BaseModel;
 
 class Renderer
 {
@@ -41,6 +44,8 @@ class Renderer
     bool framebufferResized = false;
 
     uint32_t currentFrameImageIndex;
+
+    vk::SampleCountFlagBits msaaSamples = vk::SampleCountFlagBits::e1;
 
 public:
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -71,7 +76,15 @@ public:
     void drawRectangle(int x, int y, int width, int height, float rotation = 0, vec4 color = {1, 1, 1, 1});
     void drawElipse(int x, int y, int width, int height, float rotation = 0, vec4 color = {1, 1, 1, 1});
 
+    template <typename T>
+    void drawModel(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, T ubo);
+    void drawModelTemplateless(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, void* ubo);
+
+    template <typename TVertex>
+    shared_ptr<DynamicModel<TVertex>> getDynamicModel(vector<TVertex>& vertices, vector<uint32_t>& indices);
+
     BasicUBO getNewUBO();
+    BasicUBO getNewUBO(int x, int y, int width, int height, float rotation, vec4 color);
 
     void log(string txt);
 private:
@@ -93,6 +106,9 @@ private:
     
     shared_ptr<Model<BasicVertex>> rectangle;
     shared_ptr<Model<BasicVertex>> triangle;
+
+    int dynamicModelsThisFrame = 0;
+    vector<vector<shared_ptr<BaseModel>>> dynamicModels;
 
     QueueFamilyIndices findQueueFamilies(vki::PhysicalDevice device);
     void recreateSwapChain();
@@ -121,4 +137,10 @@ inline void Renderer::createBufferWithStaging(vk::BufferUsageFlags usage, vk::Me
 
     createBuffer(size, usage, properties, buffer, bufferMemory);
     copyBuffer(stagingBuffer, buffer, size);
+}
+
+template <typename T>
+inline void Renderer::drawModel(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, T ubo)
+{
+    drawModelTemplateless(model, pipeline, &ubo);
 }

@@ -20,6 +20,8 @@ add_library(VulkanEngine
     include/Datatypes.hpp
     include/Model.hpp
     include/UniformSet.hpp
+    include/BaseModel.hpp
+    include/DynamicModel.hpp
 )
 
 target_glsl_shaders(

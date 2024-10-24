@@ -1,31 +1,30 @@
 #pragma once
 
 #include "utils.hpp"
-#include "Renderer.hpp"
+#include "BaseModel.hpp"
 
 template <typename TVertex>
-class Model
+class Model : public BaseModel
 {
     vki::Buffer handle;
     vki::DeviceMemory memory;
 
     vki::Buffer indicesHandle;
     vki::DeviceMemory indicesMemory;
-
-    Renderer* renderer;
 public:
     vector<TVertex> vertices;
     vector<uint32_t> indices;
 
-    Model(Renderer* renderer, vector<TVertex> vertices, vector<uint32_t> indices);
+    Model(Renderer* renderer, vector<TVertex>& vertices, vector<uint32_t>& indices);
 
-    void bind(vki::CommandBuffer& cmds);
-    void draw(vki::CommandBuffer& cmds);
+    void bind(vki::CommandBuffer& cmds) override;
+    void draw(vki::CommandBuffer& cmds) override;
 };
 
 template<typename TVertex>
-inline Model<TVertex>::Model(Renderer* renderer, vector<TVertex> vertices, vector<uint32_t> indices) : renderer(renderer), vertices(vertices), handle({}), memory({}), indices(indices), indicesHandle({}), indicesMemory({})
+inline Model<TVertex>::Model(Renderer* renderer, vector<TVertex>& vertices, vector<uint32_t>& indices) : vertices(vertices), handle({}), memory({}), indices(indices), indicesHandle({}), indicesMemory({})
 {
+    this->renderer = renderer;
     renderer->createBufferWithStaging(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, handle, memory, vertices);
     renderer->createBufferWithStaging(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indicesHandle, indicesMemory, indices);
 }
