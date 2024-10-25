@@ -7,6 +7,8 @@
 #include "RenderPass.hpp"
 #include "Datatypes.hpp"
 
+#include "CDT.h"
+
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
@@ -76,12 +78,18 @@ public:
     void drawRectangle(int x, int y, int width, int height, float rotation = 0, vec4 color = {1, 1, 1, 1});
     void drawElipse(int x, int y, int width, int height, float rotation = 0, vec4 color = {1, 1, 1, 1});
 
+    inline void drawPolygon(initializer_list<BasicVertex> points, int x = 0, int y = 0, int width = 1, int height = 1, float rotation = 0, vec4 color = {1, 1, 1, 1});
+    void drawPolygon(vector<BasicVertex>& points, int x = 0, int y = 0, int width = 1, int height = 1, float rotation = 0, vec4 color = {1, 1, 1, 1});
+
     template <typename T>
     void drawModel(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, T ubo);
     void drawModelTemplateless(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, void* ubo);
 
     template <typename TVertex>
     shared_ptr<DynamicModel<TVertex>> getDynamicModel(vector<TVertex>& vertices, vector<uint32_t>& indices);
+
+    template <GenericVertex2D TVertex>
+    shared_ptr<DynamicModel<TVertex>> triangulateModel(vector<TVertex>& points);
 
     BasicUBO getNewUBO();
     BasicUBO getNewUBO(int x, int y, int width, int height, float rotation, vec4 color);
@@ -143,4 +151,32 @@ template <typename T>
 inline void Renderer::drawModel(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, T ubo)
 {
     drawModelTemplateless(model, pipeline, &ubo);
+}
+
+template <GenericVertex2D TVertex>
+inline shared_ptr<DynamicModel<TVertex>> Renderer::triangulateModel(vector<TVertex>& points)
+{
+    CDT::Triangulation<float> cdt;
+    cdt.insertVertices(points.begin(), points.end(), [](const BasicVertex& p)
+                       { return p.pos.x; }, [](const BasicVertex& p)
+                       { return p.pos.y; });
+
+    cdt.eraseSuperTriangle();
+
+    vector<uint32_t> indices;
+
+    for (const auto& i : cdt.triangles)
+    {
+        indices.push_back(i.vertices[0]);
+        indices.push_back(i.vertices[1]);
+        indices.push_back(i.vertices[2]);
+    }
+
+    return getDynamicModel(points, indices);
+}
+
+inline void Renderer::drawPolygon(initializer_list<BasicVertex> points, int x, int y, int width, int height, float rotation, vec4 color)
+{
+    vector<BasicVertex> data = points;
+    drawPolygon(data, x, y, width, height, rotation, color);
 }

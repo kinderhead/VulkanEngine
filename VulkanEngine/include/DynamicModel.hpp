@@ -84,10 +84,11 @@ shared_ptr<DynamicModel<TVertex>> Renderer::getDynamicModel(vector<TVertex>& ver
     if (dynamicModelsThisFrame >= dynamicModels[currentFlightFrame].size())
     {
         model = make_shared<DynamicModel<TVertex>>(this);
+        dynamicModels[currentFlightFrame].push_back(model);
     }
     else
     {
-        model = dynamicModels[currentFlightFrame][dynamicModelsThisFrame];
+        model = static_pointer_cast<DynamicModel<TVertex>>(dynamicModels[currentFlightFrame][dynamicModelsThisFrame]);
     }
 
     model->update(vertices, indices);

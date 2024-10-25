@@ -8,10 +8,22 @@ struct VertexDefinition
     vector<vk::VertexInputAttributeDescription> attributes;
 };
 
+template <typename T>
+concept GenericVertex2D = requires(T x) {
+    x.pos;
+    x.pos.x;
+    x.pos.y;
+};
+
 struct BasicVertex
 {
     vec2 pos;
-    //vec3 color;
+    // vec3 color;
+
+    BasicVertex(float x, float y) : pos(x, y)
+    {
+        
+    }
 
     static VertexDefinition getVertexDefinition()
     {

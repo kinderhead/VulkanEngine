@@ -1,15 +1,16 @@
 #include "Renderer.hpp"
 #include "Model.hpp"
+#include "DynamicModel.hpp"
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
 std::vector<BasicVertex> rectangleVertices = {
-    {{0.0f, 0.0f}},
-    {{1.0f, 0.0f}},
-    {{1.0f, 1.0f}},
-    {{0.0f, 1.0f}}
+    {0.0f, 0.0f},
+    {1.0f, 0.0f},
+    {1.0f, 1.0f},
+    {0.0f, 1.0f}
 };
 
 std::vector<uint32_t> rectangleIndices = {
@@ -17,9 +18,9 @@ std::vector<uint32_t> rectangleIndices = {
 };
 
 std::vector<BasicVertex> triangleVertices = {
-    {{0.0f, -1.25f}},
-    {{1.25f, 1.25f}},
-    {{0.0f, 1.25f}}
+    {0.0f, -1.25f},
+    {1.25f, 1.25f},
+    {0.0f, 1.25f}
 };
 
 std::vector<uint32_t> triangleIndices = {
@@ -431,6 +432,11 @@ void Renderer::drawRectangle(int x, int y, int width, int height, float rotation
 void Renderer::drawElipse(int x, int y, int width, int height, float rotation, vec4 color)
 {
     drawModel(triangle, elipsePipeline, getNewUBO(x, y, width, height, rotation, color));
+}
+
+void Renderer::drawPolygon(vector<BasicVertex>& points, int x, int y, int width, int height, float rotation, vec4 color)
+{
+    drawModel(triangulateModel(points), basicPipeline, getNewUBO(x, y, width, height, rotation, color));
 }
 
 void Renderer::drawModelTemplateless(shared_ptr<BaseModel> model, shared_ptr<Pipeline> pipeline, void* ubo)

@@ -8,5 +8,7 @@ include(cmake/CPM.cmake)
 find_program(GLSLANGVALIDATOR_EXE "glslangValidator")
 mark_as_advanced(FORCE GLSLANGVALIDATOR_EXE)
 
+add_subdirectory(CDT/CDT)
+
 add_subdirectory(VulkanEngine)
 add_subdirectory(Testing)
